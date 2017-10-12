@@ -1,7 +1,10 @@
 #coding=utf8
+import json
 import time
 from urllib.parse import urljoin
 from urllib.request import urlopen
+
+from pymongo import MongoClient
 from bs4 import BeautifulSoup
 
 def download(url):        # url下载
@@ -55,14 +58,31 @@ class HtmlParser(object):       # 爬虫的解析器类
         res_data = {}
         res_data['url']=page_url
         l = page_url.split('/')
+
+        connection = MongoClient('localhost', 27017)        # 数据库连接
+        db = connection.insurance
+        collection = db.XYZ
+
         if l[4]!="jiankangxian":        # 判断是否为保险页面,若是则获取下面的数据
                                           # 该区域代码还未写完 后续需要添加数据库
             title_node = soup.find('h1',class_="product-intro__title-text")
-            res_data['title'] = title_node.get_text()
+            res_data['title'] = title_node.get_text(strip=True)
+
+            # json_data = {'title':res_data['title'],'url':res_data['url']}
+            # collection.insert(json_data)      # 加入json数据
+
             title_info = soup.find_all('div',class_="hc-form-item hc-clearFix")
-            res_data['on_sale'] = title_info[0]
+            # res_data['on_sale'] = title_info[0]
+
             title_info.pop(0)
             res_data['info'] = title_info
+            info_summary=''
+            for info in res_data['info']:
+                info_summary+=info.get_text(strip=True)
+            # json_info={'info':info_summary}
+
+            collection.insert({'title':res_data['title'],'url':res_data['url'],'info':info_summary})        # 添加数据到数据库
+            #collection.remove()
         return res_data
 
 class SpiderMain(object):       # 爬虫类
@@ -76,14 +96,10 @@ class SpiderMain(object):       # 爬虫类
             try:
                 new_url=self.urls.get_new_url()     # url串里弹出url
                 print('craw %d : %s'%(count,new_url))       # 输出对应的保险序号以及网址
-
                 html_cont=download(new_url)     # 下载网页内容
-
                 new_urls,new_data=self.parser.parse(new_url,html_cont)      # 把content传入parser中爬取各保险的网址
                                                                             # 或者爬取保险页面的内容 分别赋值给new_urls和new_data
-
                 self.urls.add_new_urls(new_urls)        # 若成功爬取new_urls,将获取的url串加入url管理器的url串中
-
                 count=count+1       # 计数器加1
                 time.sleep(1)       # 当前网页不能接受过于频繁的访问,延迟+1s 0--0
 
