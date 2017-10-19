@@ -3,7 +3,8 @@ from queue import Queue
 from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
-
+import requests
+import lxml
 URL_QUEUE = Queue()
 ROOT_URL = 'http://www.xyz.cn'
 
@@ -13,8 +14,8 @@ def url_craw():
     # 首页url地址
     first_page_url = "/mall/jiankangxian/"
 
-    response = urlopen(ROOT_URL + first_page_url)
-    soup = BeautifulSoup(response.read(), 'html.parser', from_encoding='utf-8')
+    response = requests.get(ROOT_URL + first_page_url)
+    soup = BeautifulSoup(response.text, 'lxml')
     # pager为网页分页信息的div，从这里找到所有的a标签
     all_a = soup.find('div', class_='pager').find_all('a')
     all_href=list()
@@ -50,8 +51,8 @@ def get_company_craw(d_url_company):
 
 # 获取保险公司名和对应url的爬虫
 def company_craw(url,d_url_company):
-    response = urlopen(url)
-    soup = BeautifulSoup(response.read(), 'html.parser', from_encoding='utf-8')
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'lxml')
     # 找到所有的li标签，每个li标签里存了各个保险产品的信息，包括了保险产品所在的保险公司名和对应的详情页url
     all_ul = soup.find_all('ul', class_='hazardC_pro_con_list')
     for one_ul in all_ul:
