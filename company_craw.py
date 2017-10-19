@@ -2,9 +2,9 @@
 from queue import Queue
 from urllib.request import urlopen
 
+import time
 from bs4 import BeautifulSoup
 import requests
-import lxml
 URL_QUEUE = Queue()
 ROOT_URL = 'http://www.xyz.cn'
 
@@ -17,7 +17,8 @@ def url_craw():
     response = requests.get(ROOT_URL + first_page_url)
     soup = BeautifulSoup(response.text, 'lxml')
     # pager为网页分页信息的div，从这里找到所有的a标签
-    all_a = soup.find('div', class_='pager').find_all('a')
+    all_a = soup.find('div', class_="pager").find_all('a')
+    #print(all_a)
     all_href=list()
     for one_a in all_a:
         all_href.append(one_a.get('href'))
@@ -64,6 +65,7 @@ def company_craw(url,d_url_company):
         product_url = one_li.find_all('a', class_='f16 dev_trialSuccess')[0]['href']
         #print(company_name, product_url)
         d_url_company[ROOT_URL + product_url] = company_name;
+    time.sleep(2)
 
 def company_main():
     url_craw()
