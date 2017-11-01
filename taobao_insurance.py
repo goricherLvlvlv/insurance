@@ -1,10 +1,8 @@
 # coding=utf8
 import json
 import re
-import time
+import types
 from queue import Queue
-from urllib.parse import urljoin
-from urllib.request import urlopen
 import requests
 from pymongo import MongoClient
 from bs4 import BeautifulSoup
@@ -27,6 +25,34 @@ def craw():
         url = URL_QUEUE.get()
         craw_main(url)
         URL_QUEUE.task_done()
+"""
+下载各类pdf,doc,xlsx文件
+防止未来网站改变地址而导致无法浏览
+"""
+def download(fileurl,title):
+    r = requests.get(fileurl, stream=True)
+    """
+    filename0是去除'/'的filename
+    """
+    filename0 = str()
+    title = title.split('/')
+    for one in title:
+        filename0 = filename0 + one
+    """
+    filename1是去除'|'的filename
+    """
+    filename1 = str()
+    filename0 = filename0.split('|')
+    for one in filename0:
+        filename1 = filename1 + one
+
+    with open("D:\python project\insurance\download\\"+filename1+'.'+fileurl.split('.')[-1], "wb") as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk:
+                f.write(chunk)
+    print("%s downloaded!\n" % filename1)
+def down_html(url):
+    down_html()
 """
 使用了以下两种匹配符:
     .国华的正则匹配符
@@ -67,8 +93,28 @@ def craw_main(url):
     soup = BeautifulSoup(response.text,'lxml')
     title = soup.find('title').get_text(strip=True)
     company = title.split('】')[0][1:]
+    """
+    将数据添加到数据库
+    """
     collection.insert({'title':title,'url':url,'company':company,'information':json_dics})
     #collection.update({'url': url}, {'$set':{'title':title,'url':url,'company':company,'information':json_dics}})
+    """
+    pattern为正则表达式 匹配http(s)://...pdf||doc(x)||xls(x)的url
+    把url递给储存给file_urls(list类型)
+    遍历file_urls,调用download方法,文件名为保险标题+ID的格式
+    """
+    ID = 0
+    for i in json_dics['data']:
+        i_str = str(i['data'])
+        pattern = re.compile("https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+pdf|https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+docx?|https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+xlsx?")
+        file_urls = pattern.findall(i_str)
+        for file_url in file_urls:
+            download(file_url,title + str(ID))
+            ID = ID + 1
+
+    pattern = re.compile("https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+html?")
+    file_urls = pattern.findall(i_str)
+
 
 if __name__ == "__main__":
     response = requests.get(base_url)
