@@ -99,21 +99,18 @@ def craw_main(url):
     collection.insert({'title':title,'url':url,'company':company,'information':json_dics})
     #collection.update({'url': url}, {'$set':{'title':title,'url':url,'company':company,'information':json_dics}})
     """
-    pattern为正则表达式 匹配http(s)://...pdf||doc(x)||xls(x)的url
-    把url递给储存给file_urls(list类型)
+    正则表达式r"(http.+?)([.]doc|[.]pdf)" 匹配http(s)://...pdf||doc(x)||xls(x)的url
+    把url递给储存给file_urls(tuple类型)
     遍历file_urls,调用download方法,文件名为保险标题+ID的格式
     """
     ID = 0
     for i in json_dics['data']:
         i_str = str(i['data'])
-        pattern = re.compile("https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+pdf|https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+docx?|https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+xlsx?")
-        file_urls = pattern.findall(i_str)
-        for file_url in file_urls:
+        file_urls = re.findall(r"(http.+?)([.]doc|[.]pdf)",i_str)
+        for i in file_urls:
+            file_url = ''.join(i)
             download(file_url,title + str(ID))
             ID = ID + 1
-
-    pattern = re.compile("https?://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+html?")
-    file_urls = pattern.findall(i_str)
 
 
 if __name__ == "__main__":
