@@ -106,7 +106,7 @@ def craw_main(url):
     ID = 0
     for i in json_dics['data']:
         i_str = str(i['data'])
-        file_urls = re.findall(r"(http.+?)([.]doc|[.]pdf)",i_str)
+        file_urls = re.findall(r"(http.+?)([.]docx?|[.]pdf|[.]xlsx?)",i_str)
         for i in file_urls:
             file_url = ''.join(i)
             download(file_url,title + str(ID))
