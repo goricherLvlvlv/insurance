@@ -1,2 +1,0 @@
-# insurance
-Insurance information analysis
