@@ -26,10 +26,13 @@ def craw():
         craw_main(url)
         URL_QUEUE.task_done()
 """
-下载各类pdf,doc,xlsx文件
+下载各类pdf,doc,xlsx文件和图片
 防止未来网站改变地址而导致无法浏览
+fileurl是文件的下载地址
+title为文件命名
+document决定了文件储存的文件夹是哪个
 """
-def download(fileurl,title):
+def download(fileurl,title,document):
     r = requests.get(fileurl, stream=True)
     """
     filename0是去除'/'的filename
@@ -46,7 +49,7 @@ def download(fileurl,title):
     for one in filename0:
         filename1 = filename1 + one
 
-    with open("D:\python project\insurance\download\\"+filename1+'.'+fileurl.split('.')[-1], "wb") as f:
+    with open("D:\python project\insurance\download\\"+document+"\\"+filename1+'.'+fileurl.split('.')[-1], "wb") as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
@@ -109,9 +112,34 @@ def craw_main(url):
         file_urls = re.findall(r"(http.+?)([.]docx?|[.]pdf|[.]xlsx?)",i_str)
         for i in file_urls:
             file_url = ''.join(i)
-            download(file_url,title + str(ID))
+            download(file_url,title + str(ID),"text")
             ID = ID + 1
 
+
+    """
+    图片爬取
+    当一个保险里有多个html?文件时,ID0会自增,命名为page+ID0的格式
+    ID1是表示该种保险的图片个数 格式为NO.+ID1
+    """
+    ID0 = 0
+    ID1 = 0
+    for i in json_dics['data']:
+        i_str = str(i['data'])
+        file_urls = re.findall(r"(http.+?)([.]html?)", i_str)
+        for j in file_urls:
+            file_url = ''.join(j)
+            try:
+                response = requests.get(file_url)
+                soup_img = BeautifulSoup(response.text, 'lxml')
+                url_img = soup_img.find('div', class_='skin-box-bd clear-fix')
+                if (url_img):
+                    url_img = url_img.find_all('img')
+                    for k in url_img:
+                        download('https:' + k.get('data-ks-lazyload'), title + 'page' + str(ID0) + '_NO.' + str(ID1),"img")
+                        ID1 = ID1 + 1
+                ID0 = ID0 + 1
+            except:
+                print("-------------------------------------------------\n该页面无法打开\n-------------------------------------------------")
 
 if __name__ == "__main__":
     response = requests.get(base_url)
