@@ -96,24 +96,42 @@ def craw_main(url):
     soup = BeautifulSoup(response.text,'lxml')
     title = soup.find('title').get_text(strip=True)
     company = title.split('】')[0][1:]
+
+    """
+    获取保险期限
+    """
+    url_years = "https://baoxian.taobao.com/json/item/info.do"
+    querystring = {"item_id": url.split('=')[1]}
+    headers = {
+        'cache-control': "no-cache",
+        'postman-token': "1b5febd3-8dc8-d0c1-9866-d0e0b9aff753"
+    }
+    response = requests.request("GET", url_years, headers=headers, params=querystring)
+    years = json.loads(response.text)
+    for item in years['skuItem']:
+        if item['skuTitle'] in "保障期限":
+            for value in item['skuMapId']:
+                print(item['skuMapId'][value])
+            years_values = item['skuMapId'].values()
+            years_values = str(years_values).split('dict_values')[1]
     """
     将数据添加到数据库
     """
-    collection.insert({'title':title,'url':url,'company':company,'information':json_dics})
-    #collection.update({'url': url}, {'$set':{'title':title,'url':url,'company':company,'information':json_dics}})
+    collection.insert({'title':title,'url':url,'company':company,'information':json_dics,'years':years_values})
+    #collection.update({'url': url}, {'$set':{'title':title,'url':url,'company':company,'information':json_dics,'years':years_values}})
     """
     正则表达式r"(http.+?)([.]doc|[.]pdf)" 匹配http(s)://...pdf||doc(x)||xls(x)的url
     把url递给储存给file_urls(tuple类型)
     遍历file_urls,调用download方法,文件名为保险标题+ID的格式
     """
-    ID = 0
-    for i in json_dics['data']:
-        i_str = str(i['data'])
-        file_urls = re.findall(r"(http.+?)([.]docx?|[.]pdf|[.]xlsx?)",i_str)
-        for i in file_urls:
-            file_url = ''.join(i)
-            download(file_url,title + str(ID),"text")
-            ID = ID + 1
+    # ID = 0
+    # for i in json_dics['data']:
+    #     i_str = str(i['data'])
+    #     file_urls = re.findall(r"(http.+?)([.]docx?|[.]pdf|[.]xlsx?)",i_str)
+    #     for i in file_urls:
+    #         file_url = ''.join(i)
+    #         download(file_url,title + str(ID),"text")
+    #         ID = ID + 1
 
 
     """
@@ -121,25 +139,25 @@ def craw_main(url):
     当一个保险里有多个html?文件时,ID0会自增,命名为page+ID0的格式
     ID1是表示该种保险的图片个数 格式为NO.+ID1
     """
-    ID0 = 0
-    ID1 = 0
-    for i in json_dics['data']:
-        i_str = str(i['data'])
-        file_urls = re.findall(r"(http.+?)([.]html?)", i_str)
-        for j in file_urls:
-            file_url = ''.join(j)
-            try:
-                response = requests.get(file_url)
-                soup_img = BeautifulSoup(response.text, 'lxml')
-                url_img = soup_img.find('div', class_='skin-box-bd clear-fix')
-                if (url_img):
-                    url_img = url_img.find_all('img')
-                    for k in url_img:
-                        download('https:' + k.get('data-ks-lazyload'), title + 'page' + str(ID0) + '_NO.' + str(ID1),"img")
-                        ID1 = ID1 + 1
-                ID0 = ID0 + 1
-            except:
-                print("-------------------------------------------------\n该页面无法打开\n-------------------------------------------------")
+    # ID0 = 0
+    # ID1 = 0
+    # for i in json_dics['data']:
+    #     i_str = str(i['data'])
+    #     file_urls = re.findall(r"(http.+?)([.]html?)", i_str)
+    #     for j in file_urls:
+    #         file_url = ''.join(j)
+    #         try:
+    #             response = requests.get(file_url)
+    #             soup_img = BeautifulSoup(response.text, 'lxml')
+    #             url_img = soup_img.find('div', class_='skin-box-bd clear-fix')
+    #             if (url_img):
+    #                 url_img = url_img.find_all('img')
+    #                 for k in url_img:
+    #                     download('https:' + k.get('data-ks-lazyload'), title + 'page' + str(ID0) + '_NO.' + str(ID1),"img")
+    #                     ID1 = ID1 + 1
+    #             ID0 = ID0 + 1
+    #         except:
+    #             print("-------------------------------------------------\n该页面无法打开\n-------------------------------------------------")
 
 if __name__ == "__main__":
     response = requests.get(base_url)
